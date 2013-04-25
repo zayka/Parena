@@ -92,9 +92,12 @@ namespace PArena
         HUD hud;
         int currentLevelSelect = 0;
 
+        RenderTarget2D tmpTarget;
+        RenderTarget2D currentTarget;
+
         RenderTarget2D mainScene;
         RenderTarget2D shakeScene;
-        RenderTarget2D currentTarget;
+        
         RenderTarget2D distortRT;
         RenderTarget2D distortedRT;
 
@@ -208,6 +211,7 @@ namespace PArena
             glowTarget3 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
             
 
+            tmpTarget = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
             //audioEngine = new AudioEngine("Content\\Audio\\audio.xgs");
             //waveBank = new WaveBank(audioEngine, "Content\\Audio\\Wave Bank.xwb");
             //soundBank = new SoundBank(audioEngine, "Content\\Audio\\Sound Bank.xsb");
@@ -1014,18 +1018,38 @@ namespace PArena
                 currentTarget = shakeScene;
             }
 
-            if (glowON) currentTarget = AddGlow(currentTarget);
+                      
+            GraphicsDevice.SetRenderTarget(tmpTarget);
+            GraphicsDevice.Clear(Color.Black);
+            spriteBatch.Begin();
+            spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
+            /*
+            foreach (var e in enemyList)
+            {
+                if (e.isDistorted) e.Draw(spriteBatch, shakeVector);
+            }*/
+            spriteBatch.End();
+
+            currentTarget = tmpTarget;
+            
+            //if (glowON) 
+                currentTarget = AddGlow(currentTarget);
+
 
 
             GraphicsDevice.SetRenderTarget(null);
             spriteBatch.Begin();
             spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
-            foreach (var e in enemyList)
+            spriteBatch.End();
+
+            // HUD 
+            spriteBatch.Begin();            
+            for (int i = 0; i < bonusList.Count; i++)
             {
-                if (e.isDistorted) e.Draw(spriteBatch, shakeVector);
+                bonusList[i].DrawText(spriteBatch);
             }
             hud.Draw(spriteBatch);
-
+            spriteBatch.End();
 
             // DEBUG
             /*
@@ -1040,7 +1064,7 @@ namespace PArena
             //spriteBatch.DrawString(font, "BossHP: " + boss1.Speed, new Vector2(10, 4 * 12), Color.White);
             
             */
-            spriteBatch.End();
+           
         }
 
         RenderTarget2D AddGlow(RenderTarget2D source)

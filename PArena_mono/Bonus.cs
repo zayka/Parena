@@ -79,22 +79,25 @@ namespace PArena
 
         public override void Draw(SpriteBatch sb)
         {
-            if (prepareToremove) sb.DrawString(Cnt.game.fontVerdana,getText, Pos-origin, Color.White);
-            else 
-            sb.Draw(sprite, rectB,rectTex, Color.White);
+            if (!prepareToremove) sb.Draw(sprite, rectB,rectTex, Color.White);                      
         }
 
         public override void Draw(SpriteBatch sb, Vector2 offset)
         {
 
-            if (prepareToremove) sb.DrawString(Cnt.game.fontVerdana, getText, Pos - origin, Color.White);
-            else
+            if (!prepareToremove)
             {
                 Rectangle r = rectB;
                 r.Offset((int)offset.X, (int)offset.Y);
                 sb.Draw(sprite, r, rectTex, Color.White);
-            }
+            }                       
         }
+
+        public void DrawText(SpriteBatch sb)
+        {
+            if (prepareToremove) sb.DrawString(Cnt.game.fontVerdana, getText, Pos - origin, Color.White);
+        }
+
 
         public override void Update(GameTime gt)
         {
