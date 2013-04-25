@@ -23,7 +23,7 @@ namespace PArena
     public class Player: GameObject
     {
 
-        
+        InputState input;
         static float timeToFire = 0;
         public bool canFire { get { return timeToFire == 0 || timeToRifle == 0; } }
         Type BulletType;
@@ -51,6 +51,7 @@ namespace PArena
         public Player(Vector2 pos, Vector2 dir, Pony pony, float speed = 300)
             : base(pos, dir, null, speed)
         {
+            input = InputState.GetInput();
             hitpoints = maxHitpoints;
             //enumpony = Pony.AJ;
             ShootMethod = CommonShoot;
@@ -139,44 +140,36 @@ namespace PArena
             origin = new Vector2(Width / 2, Height / 2);
             radius = (float)Math.Sqrt(Height * Height + Width * Width);
         }
-        /*
-        public override void Draw(SpriteBatch sb float offX = 0, float offY = 0)
-        {            
-            base.Draw(sb);
-        }
-        */
-        public override void Update(GameTime gt)
+
+        public void Update(GameTime gt, bool move = true)
         {
+            Dir = Vector2.Zero;
+            if (move)
+            {
+                if (input.IsKeyPressed(Keys.A)) Dir.X--;
+                if (input.IsKeyPressed(Keys.D)) Dir.X++;
+                if (input.IsKeyPressed(Keys.W)) Dir.Y--;
+                if (input.IsKeyPressed(Keys.S)) Dir.Y++;
+                if (isDead) Dir = Vector2.Zero;
+
+                timeToFire = MathHelper.Clamp(timeToFire - (float)gt.ElapsedGameTime.TotalSeconds, 0, rof);
+                if (BulletType == typeof(Bullet_Rifle)) timeToRifle = MathHelper.Clamp(timeToRifle - (float)gt.ElapsedGameTime.TotalSeconds, 0, rofRifle);
+            }
+
             float elapsed = (float)gt.ElapsedGameTime.TotalSeconds;
             Vector2 newPos = Pos + Dir * speed * elapsed;
-            if (newPos.X < 10 || newPos.X > Game1.screenWidth-10) Dir.X = 0;
-            if (newPos.Y < 10 || newPos.Y > Game1.screenHeight-10) Dir.Y = 0;
+            if (newPos.X < 10 || newPos.X > Game1.screenWidth - 10) Dir.X = 0;
+            if (newPos.Y < 10 || newPos.Y > Game1.screenHeight - 10) Dir.Y = 0;
 
             for (int i = 0; i < emitters.Count; i++)
             {
-                Vector2 v = Pos; v.Y=Pos.Y + 2 * i - 6;
+                Vector2 v = Pos; v.Y = Pos.Y + 2 * i - 6;
                 emitters[i].Pos = v;
                 emitters[i].Update(gt);
             }
 
-            base.Update(gt);
-        }
-        
-        public void Update(GameTime gt, KeyboardState kstate)
-        {
-
-            Dir = Vector2.Zero;
-            if (kstate.IsKeyDown(Keys.A)) Dir.X--;
-            if (kstate.IsKeyDown(Keys.D)) Dir.X++;
-            if (kstate.IsKeyDown(Keys.W)) Dir.Y--;
-            if (kstate.IsKeyDown(Keys.S)) Dir.Y++;
-            if (isDead) Dir = Vector2.Zero;
-
-            timeToFire = MathHelper.Clamp(timeToFire - (float)gt.ElapsedGameTime.TotalSeconds, 0, rof);
-            if (BulletType == typeof(Bullet_Rifle)) timeToRifle = MathHelper.Clamp(timeToRifle - (float)gt.ElapsedGameTime.TotalSeconds, 0, rofRifle);
-
-            Update(gt);
-            //Pos += Vel * (float)gt.ElapsedGameTime.TotalSeconds;
+            Pos += Dir * speed * (float)gt.ElapsedGameTime.TotalSeconds;
+       
             if (isDead)
             {
                 spotTime += (float)gt.ElapsedGameTime.TotalSeconds;
