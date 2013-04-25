@@ -94,7 +94,6 @@ namespace PArena
         HUD hud;
         int currentLevelSelect = 0;
 
-        RenderTarget2D tmpTarget;
         RenderTarget2D currentTarget;
 
         RenderTarget2D mainScene;
@@ -161,8 +160,7 @@ namespace PArena
         ParticleEmitter testEmitter;
         long elapsed1;
         long elapsed2;
-        float elapsed3;
-        bool glowON = true;
+        float elapsed3;        
         /*
         [DllImport("user32.dll")]
         public static extern void SetWindowPos(IntPtr Hwnd, uint Level, int X, int Y, int W, int H, uint Flags);
@@ -180,11 +178,8 @@ namespace PArena
             //graphics.SynchronizeWithVerticalRetrace = false;
             //TargetElapsedTime = new TimeSpan(0, 0, 0, 0, 5);
             //this.Window.ClientBounds.Location = new Point(100, 100);    
-            //SetWindowPos(Window.Handle, 0, 100, 100, screenWidth, screenHeight, 0);            
-            
+            //SetWindowPos(Window.Handle, 0, 100, 100, screenWidth, screenHeight, 0);                        
         }
-    
-
 
         /// <summary>
         /// Allows the game to perform any initialization it needs to before starting to run.
@@ -214,9 +209,7 @@ namespace PArena
             glowTarget1 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight, false, SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.PreserveContents);
             glowTarget2 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
             glowTarget3 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
-            
-
-            tmpTarget = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+                       
             //audioEngine = new AudioEngine("Content\\Audio\\audio.xgs");
             //waveBank = new WaveBank(audioEngine, "Content\\Audio\\Wave Bank.xwb");
             //soundBank = new SoundBank(audioEngine, "Content\\Audio\\Sound Bank.xsb");
@@ -692,10 +685,7 @@ namespace PArena
                     shakeParam.dir = dir;                   
                     ShakeFunction = VectorShake;
                 }
-            }
-
-            if (kstate.IsKeyDown(Keys.Q) && !oldkstate.IsKeyDown(Keys.Q))
-            { glowON ^= true; }
+            }       
         }
 
         protected override void Draw(GameTime gameTime)
@@ -995,21 +985,21 @@ namespace PArena
             }
 
                       
-            GraphicsDevice.SetRenderTarget(tmpTarget);
+            GraphicsDevice.SetRenderTarget(mainScene);
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin();
             spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
-            /*
+            
             foreach (var e in enemyList)
             {
                 if (e.isDistorted) e.Draw(spriteBatch, shakeVector);
-            }*/
+            }
             spriteBatch.End();
 
-            currentTarget = tmpTarget;
+            currentTarget = mainScene;
             
-            //if (glowON) 
-                currentTarget = AddGlow(currentTarget);
+           
+            currentTarget = AddGlow(currentTarget);
 
 
 
@@ -1045,7 +1035,7 @@ namespace PArena
 
         RenderTarget2D AddGlow(RenderTarget2D source)
         {
-            glowEffect.Parameters["BloomThreshold"].SetValue(0.7f);
+            glowEffect.Parameters["BloomThreshold"].SetValue(0.8f);
             glowEffect.Parameters["BloomIntensity"].SetValue(1.0f);
             glowEffect.Parameters["BaseIntensity"].SetValue(1.0f);
             glowEffect.Parameters["BloomSaturation"].SetValue(1.0f);
