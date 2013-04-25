@@ -105,10 +105,14 @@ namespace PArena
         Texture2D lightMask;
         Texture2D lightMaskDirect;
 
+        RenderTarget2D glowTarget1;
+        RenderTarget2D glowTarget2;
+        RenderTarget2D glowTarget3;
 
         Effect shakeEffect;
         Effect distortEffect;
         Effect lightEffect;
+        Effect glowEffect;
 
         delegate Vector2 ShakeDelegate(ShakeParam sh);
         ShakeDelegate ShakeFunction;
@@ -152,6 +156,7 @@ namespace PArena
         long elapsed1;
         long elapsed2;
         float elapsed3;
+        bool glowON = true;
         /*
         [DllImport("user32.dll")]
         public static extern void SetWindowPos(IntPtr Hwnd, uint Level, int X, int Y, int W, int H, uint Flags);
@@ -198,6 +203,11 @@ namespace PArena
             maskdRT = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
             lightdRT = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
 
+            glowTarget1 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight, false, SurfaceFormat.Color, DepthFormat.Depth24, 0, RenderTargetUsage.PreserveContents);
+            glowTarget2 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+            glowTarget3 = new RenderTarget2D(GraphicsDevice, graphics.PreferredBackBufferWidth, graphics.PreferredBackBufferHeight);
+            
+
             //audioEngine = new AudioEngine("Content\\Audio\\audio.xgs");
             //waveBank = new WaveBank(audioEngine, "Content\\Audio\\Wave Bank.xwb");
             //soundBank = new SoundBank(audioEngine, "Content\\Audio\\Sound Bank.xsb");
@@ -234,7 +244,8 @@ namespace PArena
             distortEffect = new Effect(GraphicsDevice, effectfile);
             effectfile = File.ReadAllBytes("Content\\lights.monofx");
             lightEffect = new Effect(GraphicsDevice, effectfile);
-
+            effectfile = File.ReadAllBytes("Content\\GlowEffect.monofx");
+            glowEffect = new Effect(GraphicsDevice, effectfile);
 
             EnemyTextures = new Dictionary<string, Texture2D>();
             EnemyTextures.Add("Fast", Content.Load<Texture2D>("enemy_fast"));
@@ -700,6 +711,9 @@ namespace PArena
                     ShakeFunction = VectorShake;
                 }
             }
+
+            if (kstate.IsKeyDown(Keys.Q) && !oldkstate.IsKeyDown(Keys.Q))
+            { glowON ^= true; }
             oldkstate = kstate;
             oldmstate = mstate;
         }
@@ -1000,6 +1014,9 @@ namespace PArena
                 currentTarget = shakeScene;
             }
 
+            if (glowON) currentTarget = AddGlow(currentTarget);
+
+
             GraphicsDevice.SetRenderTarget(null);
             spriteBatch.Begin();
             spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
@@ -1024,7 +1041,68 @@ namespace PArena
             
             */
             spriteBatch.End();
-        }    
+        }
+
+        RenderTarget2D AddGlow(RenderTarget2D source)
+        {
+            glowEffect.Parameters["BloomThreshold"].SetValue(0.7f);
+            glowEffect.Parameters["BloomIntensity"].SetValue(1.0f);
+            glowEffect.Parameters["BaseIntensity"].SetValue(1.0f);
+            glowEffect.Parameters["BloomSaturation"].SetValue(1.0f);
+            glowEffect.Parameters["BaseSaturation"].SetValue(1.0f);
+            glowEffect.Parameters["w0"].SetValue(0.2270270270f);
+            glowEffect.Parameters["w1"].SetValue(0.1945945946f);
+            glowEffect.Parameters["w2"].SetValue(0.1216216216f);
+            glowEffect.Parameters["w3"].SetValue(0.0540540541f);
+            glowEffect.Parameters["w4"].SetValue(0.0162162162f);            
+            glowEffect.Parameters["o1"].SetValue(1.0f);
+            glowEffect.Parameters["o2"].SetValue(2.0f);
+            glowEffect.Parameters["o3"].SetValue(3.0f);
+            glowEffect.Parameters["o4"].SetValue(4.0f);
+            GraphicsDevice device = graphics.GraphicsDevice;
+
+            device.SetRenderTarget(glowTarget1);
+            device.Clear(new Color(0, 0, 0, 0));
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, null, null, null, null);            
+            spriteBatch.Draw(source,Vector2.Zero, Color.White);
+            spriteBatch.End();
+
+            device.SetRenderTarget(glowTarget2);
+            device.Clear(new Color(0, 0, 0, 0));
+            glowEffect.CurrentTechnique = glowEffect.Techniques["Filter"];
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, null, null, null, glowEffect);
+            spriteBatch.Draw(glowTarget1, new Vector2(0, 0), Color.White);
+            spriteBatch.End();
+
+            //h blur
+            device.SetRenderTarget(glowTarget3);
+            device.Clear(new Color(0, 0, 0, 0));
+            glowEffect.CurrentTechnique = glowEffect.Techniques["Blur"];
+            glowEffect.Parameters["deltaX"].SetValue(1.0f / screenWidth);
+            glowEffect.Parameters["deltaY"].SetValue(0.0f);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, null, null, null, glowEffect);
+            spriteBatch.Draw(glowTarget2, new Vector2(0, 0), Color.White);
+            spriteBatch.End();
+
+            // v blur
+            device.SetRenderTarget(glowTarget2);
+            device.Clear(new Color(0, 0, 0, 0));
+            glowEffect.CurrentTechnique = glowEffect.Techniques["Blur"];
+            glowEffect.Parameters["deltaX"].SetValue(0.0f);
+            glowEffect.Parameters["deltaY"].SetValue(1.0f / screenHeight);
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, null, null, null, glowEffect);
+            spriteBatch.Draw(glowTarget3, new Vector2(0, 0), Color.White);
+            spriteBatch.End();
+
+            device.SetRenderTarget(glowTarget3);
+            device.Textures[1] = glowTarget2;
+
+            glowEffect.CurrentTechnique = glowEffect.Techniques["Combine"];
+            spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque, null, null, null, glowEffect);
+            spriteBatch.Draw(glowTarget1, new Vector2(0, 0), Color.White);
+            spriteBatch.End();
+            return glowTarget3;
+        }
 
         public static bool Collision(GameObject first, GameObject second)
         {

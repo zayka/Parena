@@ -12,20 +12,21 @@ namespace PArena
         /// </summary>
         static void Main(string[] args)
         {
-            try
+            //try
             {
                 using (Game1 game = new Game1())
                 {
                     game.Run();
                 }
             }
+            /*
             catch (Exception ex)
             {
                 using (StreamWriter sw = new StreamWriter("errorlog.txt"))
                 {
                     sw.WriteLine(ex.Message);
                 }
-            }
+            }*/
            
         }
     }

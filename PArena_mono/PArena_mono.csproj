@@ -95,7 +95,7 @@
       <HintPath>$(MSBuildExtensionsPath)\..\MonoGame\v3.0\Assemblies\WindowsGL\Lidgren.Network.dll</HintPath>
     </Reference>
     <Reference Include="NAudio">
-      <HintPath>C:\Program Files (x86)\MSBuild\MonoGame\v3.0\NAudio.dll</HintPath>
+      <HintPath>$(MSBuildExtensionsPath)\MonoGame\v3.0\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="OpenTK, Version=1.1.0.0, Culture=neutral, PublicKeyToken=bad199fe84eb3df4, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
@@ -335,6 +335,11 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="Content\boss1_.xnb">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Content\GlowEffect.monofx">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
