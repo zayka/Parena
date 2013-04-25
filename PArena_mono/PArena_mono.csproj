@@ -48,6 +48,7 @@
     <Compile Include="Bullet_Rail.cs" />
     <Compile Include="Bullet_Rifle.cs" />
     <Compile Include="Bullet_Shotgun.cs" />
+    <Compile Include="Camera.cs" />
     <Compile Include="Cnt.cs" />
     <Compile Include="Enemies\Enemy_Fast.cs" />
     <Compile Include="Enemies\Enemy_Normal.cs" />
@@ -59,6 +60,7 @@
     <Compile Include="Game1.cs" />
     <Compile Include="GameObject.cs" />
     <Compile Include="HUD.cs" />
+    <Compile Include="InputState.cs" />
     <Compile Include="Levels\Boss.cs" />
     <Compile Include="Levels\Boss1.cs" />
     <Compile Include="Levels\Boss2.cs" />

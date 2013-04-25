@@ -43,9 +43,11 @@ namespace PArena
         
 
         public GraphicsDeviceManager graphics;
-        public static SpriteBatch spriteBatch;
-        KeyboardState oldkstate;
-        MouseState oldmstate;
+        public static SpriteBatch spriteBatch;        
+        public Camera camera;
+        public Camera Camera { get { return camera; } }
+        InputState input;
+
 
         public SpriteFont font;
         public SpriteFont fontVerdana;
@@ -115,6 +117,7 @@ namespace PArena
         ShakeParam shakeParam;
 
 
+        
         //Sounds
         /*
         Song titleTheme;
@@ -186,6 +189,8 @@ namespace PArena
             Cnt.game = this;
             ShakeFunction = RandomShake;
             hud = new HUD();
+            camera = new Camera();
+            input = InputState.GetInput();
 
             base.Initialize();
             PresentationParameters pp = GraphicsDevice.PresentationParameters;
@@ -344,14 +349,13 @@ namespace PArena
         /// all content.
         /// </summary>
         protected override void UnloadContent()
-        {
-            // TODO: Unload any non ContentManager content here  
-            
+        {                      
             CloseWaveOut();
         }
 
         protected override void Update(GameTime gameTime)
-        {           
+        {
+            input.Update();
             switch (gameState)
             {
                 case GameStates.GS_Menu:
@@ -374,10 +378,7 @@ namespace PArena
 
         private void Update_GameOver(GameTime gameTime)
         {
-            KeyboardState kstate = Keyboard.GetState();
-            MouseState mstate = Mouse.GetState();
-
-            if (kstate.IsKeyDown(Keys.Space) && !oldkstate.IsKeyDown(Keys.Space))
+            if (input.IsNewKeyPressed(Keys.Space))            
             {
                 gameState = GameStates.GS_Menu;
                 //MediaPlayer.Stop();
@@ -388,8 +389,8 @@ namespace PArena
                 soundPlayer.Play();
                 
             }
-            
-            if (kstate.IsKeyDown(Keys.Escape) && !oldkstate.IsKeyDown(Keys.Escape))
+
+            if (input.IsNewKeyPressed(Keys.Escape))
             {
                 gameState = GameStates.GS_Menu;
                 MediaPlayer.Stop();
@@ -400,9 +401,7 @@ namespace PArena
                 soundPlayer.Play();
             }
 
-            player.Update(gameTime, kstate);
-            oldkstate = kstate;
-            oldmstate = mstate;
+            player.Update(gameTime,false);            
 
         }
 
@@ -427,30 +426,16 @@ namespace PArena
                 MediaPlayer.Play(titleTheme);
             }
             */
+            if (input.IsNewKeyPressed(Keys.D1)) { }
 
-            if (kstate.IsKeyDown(Keys.D1) && !oldkstate.IsKeyDown(Keys.D1))
-            {                
-            }
-            if (kstate.IsKeyDown(Keys.D2) && !oldkstate.IsKeyDown(Keys.D2))
-            {
-            }
-
-            if (kstate.IsKeyDown(Keys.D3) && !oldkstate.IsKeyDown(Keys.D3))
-            {                
-            }
-
-            if (kstate.IsKeyDown(Keys.D4) && !oldkstate.IsKeyDown(Keys.D4))
-            {                
-            }
-
-            if (kstate.IsKeyDown(Keys.Escape) && !oldkstate.IsKeyDown(Keys.Escape)) this.Exit();
+            if (input.IsNewKeyPressed(Keys.Escape)) this.Exit();
            
             foreach (ToolTip tt in tooltips)
             {
                 tt.Update(mstate, gt);
             }
 
-            if (mstate.LeftButton == ButtonState.Pressed && oldmstate.LeftButton != ButtonState.Pressed)
+            if (input.IsLeftButtonClick())            
             {
                 foreach (ToolTip tt in tooltips)
                 {
@@ -481,15 +466,14 @@ namespace PArena
                     }
                 }
             }
-
-            if (kstate.IsKeyDown(Keys.A) && !oldkstate.IsKeyDown(Keys.A))
+            if (input.IsNewKeyPressed(Keys.A))
             {
                 currentLevelSelect--;                
                 /*Cue c = soundBank.GetCue("click"); c.Play();*/
                 soundPlayer.SoundLocation = clickSound;                
                 soundPlayer.Play();
             }
-            if (kstate.IsKeyDown(Keys.D) && !oldkstate.IsKeyDown(Keys.D))
+            if (input.IsNewKeyPressed(Keys.D))
             {
                 currentLevelSelect++;
                 /*Cue c = soundBank.GetCue("click"); c.Play();*/
@@ -497,16 +481,13 @@ namespace PArena
                 soundPlayer.Play();
             }
             currentLevelSelect = (int)MathHelper.Clamp(currentLevelSelect, 0, 4);
-            oldkstate = kstate;
-            oldmstate = mstate;
         }
 
         void Update_ChangeLevel(GameTime gt)
-        {
-           
+        {           
             KeyboardState kstate = Keyboard.GetState();
             MouseState mstate = Mouse.GetState();
-            if (kstate.IsKeyDown(Keys.Escape) && !oldkstate.IsKeyDown(Keys.Escape))
+            if (input.IsNewKeyPressed(Keys.Escape)) 
             {
                 gameState = GameStates.GS_Menu;                
                 soundPlayer.SoundLocation = CYDSound;
@@ -518,11 +499,11 @@ namespace PArena
                 cyd.Play();*/
             }
 
-            player.Update(gt, Keyboard.GetState());
+            player.Update(gt, false);
             CurrentLevel.LevelBoss.Update(gt);
             CurrentLevel.UpdateTime(gt);
 
-            if (kstate.IsKeyDown(Keys.Space) && !oldkstate.IsKeyDown(Keys.Space))
+            if (input.IsNewKeyPressed(Keys.Space)) 
             {
                 gameState = GameStates.GS_Level;
                 CurrentLevel = CurrentLevel.nextLevel;
@@ -548,10 +529,7 @@ namespace PArena
                 mainOutputStream = CreateInputStream(levelTheme);
                 waveOutDevice.Init(mainOutputStream);
                 waveOutDevice.Play();
-            }
-           
-            oldkstate = kstate;
-            oldmstate = mstate;
+            }           
         }
 
         /// <summary>
@@ -561,7 +539,7 @@ namespace PArena
         /// <param name="gameTime">Provides a snapshot of timing values.</param>
         void Update_Level(GameTime gameTime)
         {
-            testEmitter.Pos = new Vector2(oldmstate.X, oldmstate.Y);
+            testEmitter.Pos = input.MouseVector();
             //testEmitter.Update(gameTime);
 
             if (rnd.NextDouble()  < 0.01&&LoadBonus<0) { Bonus.LoadRandomBonus(this); LoadBonus = 20; }
@@ -602,7 +580,7 @@ namespace PArena
 
             sw.Restart();
 
-            player.Update(gameTime, Keyboard.GetState());
+            player.Update(gameTime);
 
             for (int i = 0; i < enemyList.Count; i++)
             {
@@ -663,8 +641,8 @@ namespace PArena
         {
             KeyboardState kstate = Keyboard.GetState();
             MouseState mstate = Mouse.GetState();
-
-            if (kstate.IsKeyDown(Keys.D1) && !oldkstate.IsKeyDown(Keys.D1))
+            /*
+            if (input.IsNewKeyPressed(Keys.D1)) 
             {
                 Enemy e = new Enemy_StableT2(new Vector2(200, 200));
                 enemyList.Add(e);
@@ -673,8 +651,8 @@ namespace PArena
                 e = new Enemy_StableT1(new Vector2(280, 200));
                 //enemyList.Add(e);
             }
-
-            if (kstate.IsKeyDown(Keys.Escape) && !oldkstate.IsKeyDown(Keys.Escape))
+            */
+            if (input.IsNewKeyPressed(Keys.Escape)) 
             {
                 //this.Exit();
                 gameState = GameStates.GS_Menu;
@@ -688,8 +666,8 @@ namespace PArena
                 waveOutDevice.Init(mainOutputStream);
                 waveOutDevice.Play();
             }
-
-            if (mstate.LeftButton == ButtonState.Pressed &&CurrentLevel.levelTime>0.1f /*&& oldmstate.LeftButton != ButtonState.Pressed*/)
+            
+            if (input.IsLeftButtonPress() && CurrentLevel.levelTime > 0.1f /*&& oldmstate.LeftButton != ButtonState.Pressed*/)
             {
                 if (player.canFire)
                 {
@@ -700,8 +678,6 @@ namespace PArena
                     ShakeFunction = VectorShake;
                 }
             }
-            oldkstate = kstate;
-            oldmstate = mstate;
         }
 
         protected override void Draw(GameTime gameTime)
@@ -947,7 +923,7 @@ namespace PArena
 
             if (player!= null)
             {                
-                Vector2 v =  new Vector2(oldmstate.X,oldmstate.Y)-player.Pos;
+                Vector2 v =  input.MouseVector()-player.Pos;
                 float angle = (float)Math.Atan2(v.Y, v.X);
                 Vector2 origin = new Vector2(0, 100);
                 currecr.Width = 500;
