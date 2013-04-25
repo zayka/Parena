@@ -95,6 +95,7 @@ namespace PArena
         int currentLevelSelect = 0;
 
         RenderTarget2D currentTarget;
+        RenderTarget2D entityTarget;
 
         RenderTarget2D mainScene;
         RenderTarget2D shakeScene;
@@ -197,9 +198,11 @@ namespace PArena
 
             base.Initialize();
             PresentationParameters pp = GraphicsDevice.PresentationParameters;
-            mainScene = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
+            mainScene = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24, 0, RenderTargetUsage.PreserveContents);
             shakeScene = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
-            currentTarget = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);            
+            currentTarget = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
+            entityTarget = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);            
+
             distortRT = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
             distortedRT = new RenderTarget2D(GraphicsDevice, pp.BackBufferWidth, pp.BackBufferHeight, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
 
@@ -230,8 +233,9 @@ namespace PArena
             font = Content.Load<SpriteFont>("Font1");
             fontVerdana = Content.Load<SpriteFont>("Font2");
             fontVerdanaLarge = Content.Load<SpriteFont>("Font3");
-           // Components.Add(new FPSCounter(this, font, spriteBatch));            
-
+#if DEBUG
+            Components.Add(new FPSCounter(this, font, spriteBatch));            
+#endif
             bulletTex = Content.Load<Texture2D>("b1");
       
             /*
@@ -274,7 +278,7 @@ namespace PArena
             tooltips.Add(new ToolTip(new Rectangle(772, 137, 114, 105), new Rectangle(687, 380, 270, 90), "Pinie Pie:Element of Laughter\n\nWeapon: FlameThrower\nin DLC for $19.99", Color.Magenta, Pony.Pinkie));
 
 
-            distort = Content.Load<Texture2D>("distortMap");
+            distort = Content.Load<Texture2D>("distortMap_large");
             deadScreenTex = Content.Load<Texture2D>("deadscreen");
             tailTexCommon = Cnt.game.Content.Load<Texture2D>("t2");
             bonusesTex = Cnt.game.Content.Load<Texture2D>("bonusesTex");
@@ -787,20 +791,15 @@ namespace PArena
                 }
                 spriteBatch.End();
                 spots.Clear();
-
             }
            
-            GraphicsDevice.SetRenderTarget(mainScene);
-            GraphicsDevice.Clear(new Color(0, 0, 0, 0));
-            spriteBatch.Begin();
-
-            rect.Offset((int)shakeVector.X, (int)shakeVector.Y);
-            CurrentLevel.Draw(spriteBatch, rect);
-            spriteBatch.End();
+            GraphicsDevice.SetRenderTarget(entityTarget);
+            GraphicsDevice.Clear(new Color(0, 0, 0, 0));            
 
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Additive);
             pEngine.Draw();
             spriteBatch.End();
+
             spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
 
             foreach (var bullet in Bullets)
@@ -817,72 +816,69 @@ namespace PArena
                 bonusList[i].Draw(spriteBatch);
             }
 
-
-            //if (boss1 != null) boss1.Draw(spriteBatch);
-
             player.Draw(spriteBatch);
             foreach (var e in enemyList)
             {
                 if (!e.isDistorted) { e.Draw(spriteBatch); }
-
             }
 
             spriteBatch.End();
-            currentTarget = mainScene;
+            currentTarget = entityTarget;
+            
+            GraphicsDevice.SetRenderTarget(mainScene);
+            GraphicsDevice.Clear(new Color(0, 0, 0, 0));     
+            spriteBatch.Begin();
+            rect.Offset((int)shakeVector.X, (int)shakeVector.Y);
+            CurrentLevel.Draw(spriteBatch, rect);
+            spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
+            spriteBatch.End();
 
+            currentTarget = mainScene;
+           
             if (CurrentLevel.LevelBoss != null && CurrentLevel.LevelBoss.isDistorted )
             {
+                Vector2 origin = new Vector2(200, 200);
                 GraphicsDevice.SetRenderTarget(distortRT);
                 GraphicsDevice.Clear(new Color(127, 127, 127, 127));
                 spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.AlphaBlend);
-                spriteBatch.Draw(distort, CurrentLevel.LevelBoss.Pos - CurrentLevel.LevelBoss.Origin, Color.White);
+                spriteBatch.Draw(distort, CurrentLevel.LevelBoss.Pos - origin, Color.White);
                 spriteBatch.End();
+               
                 GraphicsDevice.SetRenderTarget(distortedRT);
                 GraphicsDevice.Textures[1] = (Texture2D)currentTarget;
                 spriteBatch.Begin(SpriteSortMode.Deferred, null, null, null, null, distortEffect);
                 spriteBatch.Draw((Texture2D)distortRT, Vector2.Zero, Color.White);
-                spriteBatch.End();
+                spriteBatch.End();              
                 currentTarget = distortedRT;
+                GraphicsDevice.SetRenderTarget(mainScene);  
             }
 
-            //
-            /*
-            bool flag = false;
-            GraphicsDevice.SetRenderTarget(distortRT);
-            GraphicsDevice.Clear(new Color(128, 128, 128, 128));
-           
-            foreach (Enemy e in EnemyList)
+            if (shakeParam.curtime > 0)
             {
-                if (!e.toDie) continue;
-                flag = true;
-                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Opaque);
-                spriteBatch.Draw(distort, e.Pos - e.Origin-new Vector2(100,100), Color.White);
-                //spriteBatch.Draw(distort, e.rect, null, Color.White);
+                GraphicsDevice.SetRenderTarget(shakeScene);
+                GraphicsDevice.Clear(new Color(0, 0, 0, 0));
+                spriteBatch.Begin();
+                spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
                 spriteBatch.End();
+                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Additive, null, null, null, shakeEffect);               
+                spriteBatch.Draw(entityTarget, shakeVector, Color.White);                
+                spriteBatch.End();                
+                currentTarget = shakeScene;
+                GraphicsDevice.SetRenderTarget(mainScene);  
             }
+
+            spriteBatch.Begin();           
+            spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
+            spriteBatch.End();
+
+            spriteBatch.Begin();
+            foreach (var e in enemyList)
+            {
+                if (e.isDistorted) e.Draw(spriteBatch, shakeVector);
+            }
+            spriteBatch.End();
             
-            foreach (Enemy e in EnemyList)
-            {
-                
-                //GraphicsDevice.SetRenderTarget(rt);
-                float strength = (float)Math.Sin(MathHelper.Pi* e.killTime / e.deadAnimationTime);//MathHelper.Lerp(0.05, 0.15, e.killTime / e.deadAnimationTime);
-                if (!e.toDie) continue;
-                RenderTarget2D rt = new RenderTarget2D(GraphicsDevice, 1024, 768, false, graphics.GraphicsDevice.DisplayMode.Format, DepthFormat.Depth24);
-                strength = MathHelper.Lerp(0.05f, 0.15f, strength);
-                GraphicsDevice.SetRenderTarget(rt);
-                GraphicsDevice.Textures[1] = (Texture2D)currentTarget;
-                distortEffect.Parameters["strength"].SetValue(strength);
-                distortEffect.Parameters["pos"].SetValue(e.Pos);
-                spriteBatch.Begin(SpriteSortMode.Deferred, null, null, null, null, distortEffect);
-                spriteBatch.Draw((Texture2D)distortRT, Vector2.Zero, Color.White);
-                spriteBatch.End();
-                //currentTarget.Dispose();  
-                currentTarget = rt;
-            }
-           //if (flag) currentTarget = distortedRT;
-            //
-            //currentTarget = distortRT;
-            */
+            currentTarget = mainScene;
 
             // lights      
             GraphicsDevice.SetRenderTarget(maskdRT);
@@ -951,40 +947,7 @@ namespace PArena
 
             currentTarget = lightdRT;
             // 
-
-            
-            if (shakeParam.curtime > 0)
-            {
-                GraphicsDevice.SetRenderTarget(shakeScene);
-                //GraphicsDevice.Clear(new Color(0, 0, 0, 0));                
-                spriteBatch.Begin();
-                spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
-                spriteBatch.End();
-
-                spriteBatch.Begin(SpriteSortMode.Deferred, BlendState.Additive, null, null, null, shakeEffect);
-
-                foreach (var bullet in Bullets)
-                {
-                    bullet.Draw(spriteBatch, shakeVector);
-                }
-
-                player.Draw(spriteBatch, shakeVector);
-                foreach (var e in enemyList)
-                {
-                    e.Draw(spriteBatch, shakeVector);
-                }
-
-                for (int i = 0; i < bonusList.Count; i++)
-                {
-                    bonusList[i].Draw(spriteBatch, shakeVector);
-                }
-
-                spriteBatch.End();
-
-                currentTarget = shakeScene;
-            }
-
-                      
+             /*         
             GraphicsDevice.SetRenderTarget(mainScene);
             GraphicsDevice.Clear(Color.Black);
             spriteBatch.Begin();
@@ -997,12 +960,12 @@ namespace PArena
             spriteBatch.End();
 
             currentTarget = mainScene;
-            
+            */
            
             currentTarget = AddGlow(currentTarget);
 
 
-
+            
             GraphicsDevice.SetRenderTarget(null);
             spriteBatch.Begin();
             spriteBatch.Draw((Texture2D)currentTarget, Vector2.Zero, Color.White);
@@ -1017,20 +980,23 @@ namespace PArena
             hud.Draw(spriteBatch);
             spriteBatch.End();
 
+#if DEBUG
             // DEBUG
-            /*
-            spriteBatch.DrawString(font, "particles: " + pEngine.Count, new Vector2(5, 0 * 12), Color.White);
-            spriteBatch.DrawString(font, "pEngine: " + elapsed1, new Vector2(5, 6 * 12), Color.White);
-            spriteBatch.DrawString(font, "emit: " + elapsed2, new Vector2(5, 7 * 12), Color.White);
-            spriteBatch.DrawString(font, "update: " + elapsed3, new Vector2(5, 8 * 12), Color.White);
+            spriteBatch.Begin();
+            //spriteBatch.DrawString(font, "particles: " + pEngine.Count, new Vector2(5, 0 * 12), Color.White);
+            //spriteBatch.DrawString(font, "pEngine: " + elapsed1, new Vector2(5, 6 * 12), Color.White);
+           // spriteBatch.DrawString(font, "emit: " + elapsed2, new Vector2(5, 7 * 12), Color.White);
+           // spriteBatch.DrawString(font, "update: " + elapsed3, new Vector2(5, 8 * 12), Color.White);
 
             //spriteBatch.DrawString(font, "lb: " + LoadBonus, new Vector2(10, 5 * 12), Color.White);
             //spriteBatch.DrawString(font, "HP: " + player.hitpoints, new Vector2(10, 6 * 12), Color.White);
             // spriteBatch.DrawString(font, "time: " + CurrentLevel.Time, new Vector2(10, 7 * 12), Color.White);
             //spriteBatch.DrawString(font, "BossHP: " + boss1.Speed, new Vector2(10, 4 * 12), Color.White);
-            
-            */
-           
+            spriteBatch.End();
+
+
+#endif
+
         }
 
         RenderTarget2D AddGlow(RenderTarget2D source)
@@ -1266,6 +1232,34 @@ namespace PArena
         {
             if (sh.curtime == 0) return Vector2.Zero;
             return new Vector2(rnd.Next(2*(int)sh.ampl) - sh.ampl, rnd.Next(2*(int)sh.ampl) - sh.ampl);
+        }
+
+        void TextureToFile(Texture2D tex, string filename)
+        { 
+            Stream stream = new MemoryStream();
+            Color [] colors = new Color[tex.Width*tex.Height];
+            tex.GetData<Color>(colors);
+
+            System.Drawing.Bitmap bmp = new System.Drawing.Bitmap(tex.Width, tex.Height);
+            System.Drawing.Rectangle rect = new System.Drawing.Rectangle(0, 0, bmp.Width, bmp.Height);
+            System.Drawing.Imaging.PixelFormat pxf = System.Drawing.Imaging.PixelFormat.Format24bppRgb;
+            System.Drawing.Imaging.BitmapData bmpData = bmp.LockBits(rect, System.Drawing.Imaging.ImageLockMode.ReadWrite, pxf);
+            IntPtr ptr = bmpData.Scan0;
+            int numBytes = bmp.Width * bmp.Height * 3;
+            byte[] rgbValues = new byte[numBytes];
+
+            int j = 0;
+            for (int i = 0; i < colors.Length; i++)
+            {
+                rgbValues[j++] = colors[i].B;
+                rgbValues[j++] = colors[i].G;
+                rgbValues[j++] = colors[i].R;
+                
+            }
+
+            System.Runtime.InteropServices.Marshal.Copy(rgbValues, 0, ptr, numBytes);
+            bmp.UnlockBits(bmpData);
+            bmp.Save(filename);
         }
       
     }

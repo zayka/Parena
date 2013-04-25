@@ -102,7 +102,7 @@ namespace PArena
                 w.waveDir = new Vector2(1, 0);
                 waves.Add(new Wave(WaveType.Line, w));
             }
-            
+            //*/
             if (time > 60 && time - elapsed < 60)
             {
                 if (waves.Count == 0)

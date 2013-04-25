@@ -40,7 +40,7 @@ namespace PArena
             time += elapsed;
             levelTime += elapsed;
             
-
+            
             if (time > 2 && (time - elapsed < 2))
             {
                 w.numEnemy = 30;
@@ -130,7 +130,7 @@ namespace PArena
                 waves.Add(new Wave(WaveType.Random, w));
             }
             
-            
+            //*/
             if (time > 90 && time - elapsed < 90)
             {
                 if (waves.Count == 0)

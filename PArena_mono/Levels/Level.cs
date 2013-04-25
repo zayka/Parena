@@ -70,7 +70,7 @@ namespace PArena
 
         public virtual void  Draw(SpriteBatch sp, Rectangle rect)
         {
-
+            //Color c = Color.White;
             Color c = Color.Lerp(Color.Black, Color.White, time / startTime);
             sp.Draw((Texture2D)backgroundRT, rect, c);           
             // про босса
@@ -105,7 +105,7 @@ namespace PArena
                // Cnt.game.gameState = GameStates.GS_ChangeLevel;
             }
 
-        }
+        }     
     }   
 }
 
